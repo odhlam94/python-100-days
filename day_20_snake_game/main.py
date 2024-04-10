@@ -1,5 +1,5 @@
-from models.game import SnakeGame
+from models.v2.game import SnakeGame
 
 game = SnakeGame()
-game.run()
+game.start()
 

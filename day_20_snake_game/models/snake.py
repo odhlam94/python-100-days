@@ -1,21 +1,18 @@
-import random
 from turtle import Turtle, Screen
 from time import sleep
 from constants import *
+from .food import Food
 from .message import Message
 from enums import Direction, State
 from functools import partial
-from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+
 
 class Snake:
     segments: list[Turtle] = []
-    food: Turtle = None
+    __food: Food = None
     __score__: int = 0
     __state__ = State.WAIT
     high_score: int = 0
-
-    x_boundary = SCREEN_WIDTH/2
-    y_boundary = SCREEN_HEIGHT/2
 
     def __init__(self, screen: Screen):
         print("Set key to control snake")
@@ -24,6 +21,7 @@ class Snake:
         screen.onkey(key="Right", fun=partial(self.set_heading_angle, Direction.RIGHT_DEGREE))
         screen.onkey(key="Left", fun=partial(self.set_heading_angle, Direction.LEFT_DEGREE))
         self.screen = screen
+        self.food = Food()
         self.main_msg = Message("PRESS SPACE TO START", 0, 0)
         self.score_msg = Message("Score: 0  High Score: 0", 0, SCREEN_HEIGHT/2 - 50)
 
@@ -39,20 +37,6 @@ class Snake:
 
         self.__score__ = 0
         self.main_msg.clear()
-
-    def __init_food(self):
-        food = Turtle("circle")
-        food.speed(0)
-        food.color("green")
-        food.penup()
-        
-        x_boundary = int(self.x_boundary / DISTANCE) - 3
-        y_boundary = int(self.y_boundary / DISTANCE) - 3
-        
-        rnd_x = random.randint(-x_boundary, x_boundary) * DISTANCE
-        rnd_y = random.randint(-y_boundary, y_boundary) * DISTANCE
-        food.goto(rnd_x, rnd_y)
-        self.food = food
 
     def __init_segments(self):
         for position in range(SEGMENT_LENGTH):
@@ -114,7 +98,7 @@ class Snake:
             return
 
         self.reset()
-        self.__init_food()
+        self.food.refresh()
         self.__init_segments()
         self.switch_state(State.PLAYING)
         self.__play()
@@ -136,7 +120,7 @@ class Snake:
                 self.food.color("white")
                 self.food.shape("square")
                 self.segments.append(self.food)
-                self.__init_food()
+                self.__food.refresh()
                 self.__score__ += 1
                 self.show_current_score()
             # Touch segment
@@ -180,8 +164,8 @@ class Snake:
     def __check_touch_boundary(self):
         x_coord = self.header_segment.xcor()
         y_coord = self.header_segment.ycor()
-        in_boundary_x = -self.x_boundary < x_coord < self.x_boundary
-        in_boundary_y = -self.y_boundary < y_coord < self.y_boundary
+        in_boundary_x = -X_BOUNDARY < x_coord < X_BOUNDARY
+        in_boundary_y = -Y_BOUNDARY < y_coord < Y_BOUNDARY
 
         # Header touch boundary
         if not in_boundary_x or not in_boundary_y:

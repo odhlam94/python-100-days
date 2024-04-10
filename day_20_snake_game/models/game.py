@@ -27,13 +27,10 @@ class SnakeGame:
         screen.onkey(key="Escape", fun=self.pause_or_continue)
         self.screen = screen
         screen.exitonclick()
-        
-        
 
     def pause_or_continue(self):
         state = State.PLAYING if self.snake.get_state() is State.PAUSE else State.PAUSE
         self.snake.switch_state(state)
-        
         
     def draw_start_screen(self):
         pen = Turtle()
@@ -45,7 +42,6 @@ class SnakeGame:
         pen.goto(0, 50)
         pen.write("Press 1, 2, or 3", align="center", font=("Arial", 18, "normal"))
         self.screen.update()
-        
 
     # Function to get user input for start level
     def get_start_level(self):
