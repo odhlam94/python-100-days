@@ -1,15 +1,16 @@
 from turtle import Turtle
 
 
-class Pen:
-    def __init__(self):
-        pen = Turtle("square")
-        pen.speed(0)
-        pen.color("white")
-        pen.penup()
-        pen.hideturtle()
-        self.pen = pen
+class Message(Turtle):
+    def __init__(self, msg, x, y):
+        super().__init__()
+        self.speed(0)
+        self.color("white")
+        self.penup()
+        self.hideturtle()
+        self.goto(x, y)
+        self.write(msg, align="center", font=("Arial", 24, "normal"))
 
-    def write(self, x, y, msg: str, align="center", font=("Courier", 24, "normal")):
-        self.pen.goto(x, y)
-        self.pen.write(msg, align=align, font=font)
+    def override_msg(self, msg):
+        self.clear()
+        self.write(msg, align="center", font=("Arial", 24, "normal"))

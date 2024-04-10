@@ -1,75 +1,192 @@
+import random
 from turtle import Turtle, Screen
 from time import sleep
-
+from constants import *
+from .message import Message
+from enums import Direction, State
+from functools import partial
+from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
 class Snake:
     segments: list[Turtle] = []
+    food: Turtle = None
+    __score__: int = 0
+    __state__ = State.WAIT
+    high_score: int = 0
+
+    x_boundary = SCREEN_WIDTH/2
+    y_boundary = SCREEN_HEIGHT/2
 
     def __init__(self, screen: Screen):
-        screen.onkey(key="d", fun=self.move_forward)
-        screen.onkey(key="Up", fun=self.up_direction)
-        screen.onkey(key="Right", fun=self.right_direction)
-        screen.onkey(key="Left", fun=self.left_direction)
-        screen.onkey(key="Down", fun=self.down_direction)
+        print("Set key to control snake")
+        screen.onkey(key="Up", fun=partial(self.set_heading_angle, Direction.UP_DEGREE))
+        screen.onkey(key="Down", fun=partial(self.set_heading_angle, Direction.DOWN_DEGREE))
+        screen.onkey(key="Right", fun=partial(self.set_heading_angle, Direction.RIGHT_DEGREE))
+        screen.onkey(key="Left", fun=partial(self.set_heading_angle, Direction.LEFT_DEGREE))
         self.screen = screen
+        self.main_msg = Message("PRESS SPACE TO START", 0, 0)
+        self.score_msg = Message("Score: 0  High Score: 0", 0, SCREEN_HEIGHT/2 - 50)
 
-        for position in [0, -20, -40]:
+    def reset(self):
+        if self.__state__ != State.WAIT:
+            for segment in self.segments:
+                segment.reset()
+                segment.clear()
+
+            self.segments = []
+            self.food.clear()
+            self.food.reset()
+
+        self.__score__ = 0
+        self.main_msg.clear()
+
+    def __init_food(self):
+        food = Turtle("circle")
+        food.speed(0)
+        food.color("green")
+        food.penup()
+        
+        x_boundary = int(self.x_boundary / DISTANCE) - 3
+        y_boundary = int(self.y_boundary / DISTANCE) - 3
+        
+        rnd_x = random.randint(-x_boundary, x_boundary) * DISTANCE
+        rnd_y = random.randint(-y_boundary, y_boundary) * DISTANCE
+        food.goto(rnd_x, rnd_y)
+        self.food = food
+
+    def __init_segments(self):
+        for position in range(SEGMENT_LENGTH):
             segment = Turtle("square")
             segment.color("white")
             segment.penup()
-            segment.goto(position, 0)
+            segment.goto(-position * SEGMENT_SIZE, 0)
+            segment.speed(1)
             self.segments.append(segment)
 
     @property
     def header_segment(self) -> Turtle:
         return self.segments[0]
 
-    def play(self):
-        while True:
-            prev_segment = self.header_segment
-            for seg in self.segments:
-                # Skip with first segment
-                if seg is self.header_segment:
-                    continue
+    def get_state(self) -> State:
+        return self.__state__
 
-                prev_position = prev_segment.position()
-                print(prev_position)
-                seg.goto(prev_position[0], prev_position[1])
-                print(prev_position[0], prev_position[1])
-                prev_segment = seg
-                self.header_segment.forward(DISTANCE)
+    def show_main_message(self):
+        # Reset before set
+        self.main_msg.clear()
 
-            self.screen.update()
-            sleep(0.1)
+        def high_score_msg():
+            self.score_msg.override_msg(f"Score: {self.__score__} High Score: {self.high_score}")
 
-    def up_direction(self):
-        self.header_segment.setheading(UP_DEGREE)
+        self.__show_hide_components(hide=True)
 
-    def down_direction(self):
-        self.header_segment.setheading(DOWN_DEGREE)
+        if self.__state__ is State.GAME_OVER:
+            high_score_msg()
+            self.main_msg.override_msg("GAME OVER!. PRESS SPACE TO START")
+        elif self.__state__ is State.PAUSE:
+            high_score_msg()
+            self.main_msg.override_msg("PAUSE GAME. PRESS ESCAPE TO CONTINUE")
+        elif self.__state__ is State.WAIT:
+            self.main_msg.override_msg("PRESS SPACE TO START")
+        else:
+            self.show_current_score()
+            self.__show_hide_components(hide=False)
 
-    def left_direction(self):
-        self.header_segment.setheading(LEFT_DEGREE)
+    def show_current_score(self):
+        self.score_msg.clear()
+        self.score_msg.override_msg(f"Score: {self.__score__}")
 
-    def right_direction(self):
-        self.header_segment.setheading(RIGHT_DEGREE)
+    def switch_state(self, state: State):
+        print(f"Set state to {state}")
+        self.__state__ = state
+        self.high_score = max(self.high_score, self.__score__)
 
-    def move_by_direction(self, direction):
-        self.header_segment.setheading(direction)
+        if state is State.GAME_OVER:
+            self.reset()
 
-    def move_forward(self):
-        self.header_segment.forward(DISTANCE)
-        prev_segment = self.header_segment
-        for seg in self.segments:
-            # Skip with first segment
-            if seg is self.header_segment:
-                continue
+        self.show_main_message()
 
-            prev_position = prev_segment.position()
-            print(prev_position)
-            self.header_segment.forward(DISTANCE)
-            seg.goto(prev_position[0], prev_position[1])
-            prev_segment = seg
+        if state is State.PLAYING:
+            self.__play()
+
+    def run(self):
+        # Don't reset game if still playing
+        if self.__state__ is State.PLAYING:
+            return
+
+        self.reset()
+        self.__init_food()
+        self.__init_segments()
+        self.switch_state(State.PLAYING)
+        self.__play()
+
+    def __show_hide_components(self, hide: bool):
+        print("Hide component" if hide else "Show component")
+        for segment in self.segments:
+            segment.hideturtle() if hide else segment.showturtle()
+
+        self.food.hideturtle() if hide else self.food.showturtle()
 
         self.screen.update()
+
+    def __play(self):
+        while self.__state__ == State.PLAYING:
+            self.move()
+            # Touch food
+            if self.food.distance(self.header_segment) < 20:
+                self.food.color("white")
+                self.food.shape("square")
+                self.segments.append(self.food)
+                self.__init_food()
+                self.__score__ += 1
+                self.show_current_score()
+            # Touch segment
+            sleep(0.1)
+
+    def pause(self):
+        self.switch_state(State.PAUSE)
+        self.__play()
+
+    def move(self):
+        segments_len = len(self.segments)
+        for i in range(segments_len - 1, -1, -1):
+            seg = self.segments[i]
+            # First segment
+            if i == 0:
+                seg.forward(DISTANCE)
+            else:
+                front_seg = self.segments[i - 1]
+                seg.goto(front_seg.xcor(), front_seg.ycor())
+
+        for i in range(3, segments_len):
+            seg = self.segments[i]
+            if self.header_segment.distance(seg) < 20:
+                self.switch_state(State.GAME_OVER)
+                break
+
+        self.__check_touch_boundary()
+
+        self.screen.update()
+
+    def set_heading_angle(self, angle: Direction):
+        current_heading_angle = self.header_segment.heading()
+        invert_angle = (current_heading_angle
+                        + 180 if current_heading_angle <= 180 else -180)
+
+        if invert_angle == angle.value:
+            return
+
+        self.header_segment.setheading(angle.value)
+
+    def __check_touch_boundary(self):
+        x_coord = self.header_segment.xcor()
+        y_coord = self.header_segment.ycor()
+        in_boundary_x = -self.x_boundary < x_coord < self.x_boundary
+        in_boundary_y = -self.y_boundary < y_coord < self.y_boundary
+
+        # Header touch boundary
+        if not in_boundary_x or not in_boundary_y:
+            x_coord = x_coord if in_boundary_x else -x_coord
+            y_coord = y_coord if in_boundary_y else -y_coord
+            print(f"Touched boundary. Go to position {x_coord} - {y_coord}")
+            self.header_segment.goto(x_coord, y_coord)
 
