@@ -1,24 +1,24 @@
-from turtle import Turtle
+from turtle import Turtle, Screen
 from constants import *
 import random
+from .shared import screen
 
 
 class Food(Turtle):
     def __init__(self):
         super().__init__()
-
         # Calculate boundary position
-        self.x_boundary = int(X_BOUNDARY / DISTANCE) - 3
-        self.y_boundary = int(Y_BOUNDARY / DISTANCE) - 3
-
-        food = Turtle("circle")
-        food.speed(0)
-        food.color("green")
-        food.penup()
-        self.refresh()
-
-    def refresh(self):
-        rnd_x = random.randint(-self.x_boundary, self.x_boundary) * DISTANCE
-        rnd_y = random.randint(-self.y_boundary, self.y_boundary) * DISTANCE
+        self.shape("circle")
+        self.speed(0)
+        self.color("green")
+        self.penup()
+        x_boundary = int(X_BOUNDARY / MOVE_DISTANCE) - 3
+        y_boundary = int(Y_BOUNDARY / MOVE_DISTANCE) - 3
+        rnd_x = random.randint(-x_boundary, x_boundary) * MOVE_DISTANCE
+        rnd_y = random.randint(-y_boundary, y_boundary) * MOVE_DISTANCE
         self.goto(rnd_x, rnd_y)
+
+    def square_transform(self):
+        self.shape("square")
+        self.color("white")
 
