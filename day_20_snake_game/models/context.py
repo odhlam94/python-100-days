@@ -21,6 +21,10 @@ class Context:
         self.snake = Snake()
         self.food = Food()
 
+        # Load high score from file
+        file = open("./score.txt", "r")
+        self.__high_score = int(file.read())
+
     def __appearance_by_state(self):
         # Clear board before overwrite
         self.__message_board.clear()
@@ -57,6 +61,9 @@ class Context:
         self.__score = score
         self.__high_score = max(self.__score, self.__high_score)
         self.__appearance_by_state()
+        # store high score into file
+        file = open("score.txt", "w")
+        file.write(str(self.__score))
 
     def set_state(self, state: State):
         self.state = state
